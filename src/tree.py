@@ -136,3 +136,38 @@ class Tree:
         aux.bFactor = self.height(aux.right) - self.height(aux.left)
         return aux
     
+    def search_segun(self, funcion, node = None, results = None):
+        if results is None:
+            results = []
+        if node is None:
+            node = self.root
+        if node is None:
+            return results
+        
+        if funcion(node):
+            results.append(node)
+
+        if node.left:
+            self.search_segun(funcion, node.left, results)
+        if node.right:
+            self.search_segun(funcion, node.right, results)
+        
+        return results
+    
+    # Temperatura en un año dado > promedio de todos los paises ese año
+    def criterio_a(node, year, df) -> bool:
+        year_ubi = f"F{year}"
+        year_prom = df[year_ubi].mean()
+        return node.data[year_ubi] > year_prom
+
+    # Temperatura en un año dado < promedio de todos los años
+    def criterio_b(node, year, df) -> bool:
+        prom = df[[f"F{y}" for y in range(1961,2023)]].mean().mean()
+        year_ubi = f"F{year}"
+        return node.data[year_ubi] < prom
+    
+    # Temperatura media >= que un valor dado
+    def criterio_c(node, value) -> bool:
+        return node.average >= value
+    
+
