@@ -18,7 +18,7 @@ class TreeVisualizer:
             dot.edge(str(id(node)), str(id(node.right)))
             self.add_nodes(node.right, dot)
 
-    def generate_image(self, canvas):
+    def generate_image(self):
         if self.tree.root is None:
             return None
         dot = graphviz.Digraph(format = "png")

@@ -155,19 +155,78 @@ class Tree:
         return results
     
     # Temperatura en un año dado > promedio de todos los paises ese año
+    @staticmethod
     def criterio_a(node, year, df) -> bool:
         year_ubi = f"F{year}"
         year_prom = df[year_ubi].mean()
         return node.data[year_ubi] > year_prom
 
     # Temperatura en un año dado < promedio de todos los años
+    @staticmethod
     def criterio_b(node, year, df) -> bool:
         prom = df[[f"F{y}" for y in range(1961,2023)]].mean().mean()
         year_ubi = f"F{year}"
         return node.data[year_ubi] < prom
     
     # Temperatura media >= que un valor dado
+    @staticmethod
     def criterio_c(node, value) -> bool:
         return node.average >= value
     
+    # niveld el nodo
+    def get_level(self, node:Node) -> int:
+        level = 0
+        p = node
+        while p != self.root:
+            if p.pad is None:
+                break
+            p = p.pad
+            level += 1
+        return level
+    
+    def get_node_factor(self, node: Node) -> int:
+        return node.bFactor
 
+    def get_pad(self, node: Node) -> Node:
+        return node.pad
+    
+    def get_abuelo(self, node: Node) -> Node:
+        if node.pad:
+            return node.pad.pad
+        return None
+    
+    def get_tio(self, node: Node) -> Node:
+        abuelo = self.get_abuelo(node)
+        if abuelo is None:
+            return None
+        if abuelo.left == node.pad:
+            return abuelo.right
+        else:
+            return abuelo.left
+        
+    def search_iso3(self, iso3: str, node=None) -> Node:
+        if node is None:
+            node = self.root
+        if node is None:
+            return None
+        if node.iso3 == iso3:
+            return node
+        left = self.search_iso3(iso3, node.left)
+        if left:
+            return left
+        return self.search_iso3(iso3, node.right)
+
+    def search_nombre(self, nombre: str, node=None) -> Node:
+        if node is None:
+            node = self.root
+        if node is None:
+            return None
+        if node.country == nombre:
+            return node
+        left = self.search_nombre(nombre, node.left)
+        if left:
+            return left
+        return self.search_nombre(nombre, node.right)
+
+    def search_promedio(self, promedio: float) -> Node:
+        return self.search(self.root, promedio)
