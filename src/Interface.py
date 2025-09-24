@@ -41,7 +41,7 @@ class Interface(ctk.CTk):
         self.search_button.pack(pady=5)
         self.node_combobox = ctk.CTkComboBox(self.sidebar, values=[])
         self.node_combobox.pack(pady=5)
-        self.info_label = ctk.CTklabel(self.sidebar, text = "")
+        self.info_label = ctk.CTkLabel(self.sidebar, text = "")
         self.info_label.pack(pady = 5)
         self.tree_image = None
         self.display_tree()
@@ -60,12 +60,12 @@ class Interface(ctk.CTk):
         node = self.get_selected_node()
         if node:
             level = self.tree.get_level(node)
-            mb.show_info(title = "Nivel", message = f"Nivel del nodo: {level}")
+            mb.showinfo(title = "Nivel", message = f"Nivel del nodo: {level}")
     
     def show_balance_factor(self):
         node = self.get_selected_node()
         if node:
-            mb.show_info(title = "Balance", message = f"Factor de equilibrio del nodo: {node.bFactor}")
+            mb.showinfo(title = "Balance", message = f"Factor de equilibrio del nodo: {node.bFactor}")
 
     def show_padre(self):
         node = self.get_selected_node()
@@ -79,16 +79,16 @@ class Interface(ctk.CTk):
         if node and node.pad and node.pad.pad:
             self.info_label.configure(text = f"Abuelo: {node.pad.pad.iso3}").pack()
         else:
-            self.info_label.configure(text = "Abuelo: None").pack()
+            self.info_label.configure(text = "Abuelo: None")
     
     def show_tio(self):
         node = self.get_selected_node()
         if node and node.pad and node.pad.pad:
             tio = node.pad.pad.left if node.pad.pad.right == node.pad else node.pad.pad.right
             if tio:
-                self.info_label.configure(text = f"Tío: {tio.iso3}").pack()
+                self.info_label.configure(text = f"Tío: {tio.iso3}")
             else:
-                self.info_label.configure(text = "Tío: None").pack()
+                self.info_label.configure(text = "Tío: None")
 
     def get_selected_node(self):
         select = self.node_combobox.get()

@@ -1,8 +1,9 @@
 class Node:
-    def __init__(self, iso3, average: float, country):
+    def __init__(self, iso3, average: float, country, data = None):
         self.iso3 = iso3
         self.average = average
         self.country = country
+        self.data = data
         self.left = None
         self.right = None
         self.height = 0
