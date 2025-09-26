@@ -1,4 +1,5 @@
 from tkinter import simpledialog
+import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
 from tree import Tree,Node
@@ -17,21 +18,24 @@ class Interface(ctk.CTk):
         for _, row in df.iterrows():
             self.tree.insert(row["ISO3"], row["average"], row["Country"])
         self.tree_visualizer = TreeVisualizer(self.tree)
-        self.canvas = ctk.CTkCanvas(self, width=700, height=500, bg="white")
-        self.canvas.pack(side="right", fill="both", expand=True)
-        self.scrollbar_y = ctk.CTkScrollbar(self, orientation="vertical", command=self.canvas.yview)
-        self.scrollbar_y.pack(side="right", fill="y")
-        self.scrollbar_x = ctk.CTkScrollbar(self, orientation="horizontal", command=self.canvas.xview)
-        self.scrollbar_x.pack(side="bottom", fill="x")
+        
+        self.right_frame = ctk.CTkFrame(self)
+        self.right_frame.pack(side="right", fill="both", expand=True)
+        self.right_frame.rowconfigure(0, weight=1)
+        self.right_frame.columnconfigure(0, weight=1)
+        self.canvas = tk.Canvas(self.right_frame, width=700, height=500, bg="white")
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.scrollbar_y = tk.Scrollbar(self.right_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollbar_y.grid(row=0, column=1, sticky="ns")
+        self.scrollbar_x = tk.Scrollbar(self.right_frame, orient="horizontal", command=self.canvas.xview)
+        self.scrollbar_x.grid(row=1, column=0, sticky="ew")
         self.canvas.configure(yscrollcommand=self.scrollbar_y.set, xscrollcommand=self.scrollbar_x.set)
+
         self.sidebar = ctk.CTkFrame(self, width=250)
         self.sidebar.pack(side="left", fill="y", padx=10, pady=10)
         self.insert_button = ctk.CTkButton(self.sidebar, text="Insertar nodo", command=self.insert_node)
         self.insert_button.pack(pady=10)
-        self.delete_button = ctk.CTkButton(self.sidebar, text="Eliminar nodo", command=self.delete_node)
-        self.delete_button.pack(pady=10)
-        self.search_button = ctk.CTkButton(self.sidebar, text="Buscar nodo", command=self.search_node)
-        self.search_button.pack(pady=10)
+        
         self.level_button = ctk.CTkButton(self.sidebar, text = "Nivel", command = self.show_level)
         self.level_button.pack(pady = 5)
         self.balance_button = ctk.CTkButton(self.sidebar, text = "Factor de equilibrio", command = self.show_balance_factor)
@@ -43,16 +47,35 @@ class Interface(ctk.CTk):
         self.tio_button = ctk.CTkButton(self.sidebar, text = "Tío", command = self.show_tio)
         self.tio_button.pack(pady = 5)
         self.search_entry = ctk.CTkEntry(self.sidebar, placeholder_text="Buscar valor...")
-        self.search_entry.pack(pady=5)
-        self.search_criteria = ctk.CTkComboBox(self.sidebar, values=["iso3", "nombre", "promedio"], state="readonly")
+        
+        search_frame = ctk.CTkFrame(self.sidebar)
+        search_frame.pack(fill="x", pady=10)
+        self.search_entry = ctk.CTkEntry(search_frame, placeholder_text="Ingrese valor de búsqueda")
+        self.search_entry.pack(pady=5, fill="x")
+        self.search_criteria = ctk.CTkComboBox(search_frame, values=["iso3", "nombre", "promedio"], state="readonly")
         self.search_criteria.set("iso3")
-        self.search_criteria.pack(pady=5)
-        self.node_combobox = ctk.CTkComboBox(self.sidebar, values=[])
-        self.node_combobox.pack(pady=5)
-        self.criteria_cb = ctk.CTkComboBox(self.sidebar, values = [])
-        self.criteria_cb.pack(pady = 5)
-        self.info_label = ctk.CTkLabel(self.sidebar, text = "")
-        self.info_label.pack(pady = 5)
+        self.search_criteria.pack(pady=5, fill="x")
+        self.search_button = ctk.CTkButton(search_frame, text="Buscar", command=self.search_node)
+        self.search_button.pack(pady=5, fill="x")
+        self.node_combobox = ctk.CTkComboBox(search_frame, values=[], state="readonly")
+        self.node_combobox.pack(pady=5, fill="x")
+        
+        self.delete_button = ctk.CTkButton(search_frame, text="Eliminar nodo seleccionado", command=self.delete_node)
+        self.delete_button.pack(pady=5, fill="x")
+        
+
+        criteria_frame = ctk.CTkFrame(self.sidebar)
+        criteria_frame.pack(fill="x", pady=10)
+        self.criteria_button = ctk.CTkButton(criteria_frame, text="Buscar por criterio", command=self.search_by_criteria)
+        self.criteria_button.pack(pady=5, fill="x")
+        self.criteria_cb = ctk.CTkComboBox(criteria_frame, values=[], state="readonly")
+        self.criteria_cb.pack(pady=5, fill="x")
+        self.delete_criteria_button = ctk.CTkButton(criteria_frame, text="Eliminar nodo de criterios", command=self.delete_node_from_criteria)
+        self.delete_criteria_button.pack(pady=5, fill="x")
+        
+        self.info_label = ctk.CTkLabel(self.sidebar, text="Selecciona un nodo")
+        self.info_label.pack(pady=10, fill="x")
+
         self.tree_image = None
         self.display_tree()
         self.canvas.bind("<MouseWheel>", self.zoom_tree)
@@ -127,7 +150,7 @@ class Interface(ctk.CTk):
 
     def get_selected_node(self):
         select = self.node_combobox.get()
-        if not select or select == "No encontrado":
+        if not select:
             return None
 
         criterio = self.search_criteria.get()
@@ -150,6 +173,7 @@ class Interface(ctk.CTk):
         valor = self.search_entry.get().strip()
 
         if not valor:
+            mb.showwarning("Advertencia", "Debe ingresar un valor para buscar")
             return
 
         nodo = None
@@ -162,7 +186,8 @@ class Interface(ctk.CTk):
                 promedio = float(valor)
                 nodo = self.tree.search_promedio(promedio)
             except ValueError:
-                nodo = None
+                mb.showerror("Error", "Debe ingresar un número válido para promedio")
+                return
 
         if nodo:
             if criterio == "iso3":
@@ -175,8 +200,7 @@ class Interface(ctk.CTk):
             self.node_combobox.configure(values=[value])
             self.node_combobox.set(value)
         else:
-            self.node_combobox.configure(values=["No encontrado"])
-            self.node_combobox.set("No encontrado")
+            mb.showinfo("Resultado", "No se encontró el nodo")
 
     def insert_node(self):
         p = ctk.CTkToplevel(self)
@@ -212,11 +236,38 @@ class Interface(ctk.CTk):
     def delete_node(self):
         nodo = self.get_selected_node()
         if nodo:
-            self.tree.delete(nodo.average)
-            self.display_tree()
-            self.node_combobox.configure(values=[])
-            self.node_combobox.set("")
+            ok = self.tree.delete(nodo.average)
+            if ok:
+                self.display_tree()
+                self.node_combobox.configure(values=[])
+                self.node_combobox.set("")
+                mb.showinfo("Eliminación", "Se eliminó el nodo correctamente")
+            else:
+                mb.showerror("Error", "No se pudo eliminar el nodo")
+        else:
+            mb.showwarning("Advertencia", "Debe seleccionar un nodo para eliminar")
 
+    def delete_node_from_criteria(self):
+        select = self.criteria_cb.get()
+        if not select:
+            mb.showwarning("Advertencia", "Debe seleccionar un nodo en criterios para eliminar")
+            return
+
+        iso3 = select.split(" - ")[0]
+        nodo = self.tree.search_iso3(iso3)
+        if nodo:
+            ok = self.tree.delete(nodo.average)
+            if ok:
+                self.display_tree()
+                self.criteria_cb.configure(values=[])
+                self.criteria_cb.set("")
+                mb.showinfo("Eliminación", f"Se eliminó el nodo {nodo.iso3}")
+            else:
+                mb.showerror("Error", "No se pudo eliminar el nodo")
+        else:
+            mb.showwarning("Advertencia", "No se encontró el nodo seleccionado en criterios")
+
+    
     def search_by_criteria(self):
         options = ["Países con temperatura en año X > promedio global de ese año", "Países con temperatura en año X < promedio global en todos los años", "Países con promedio >= valor dado"]
         choice = simpledialog.askinteger("Selección de criterio", "Seleccione criterio:\n1. Países con temperatura en año X > promedio global de ese año\n2.Países con temperatura en año X < promedio global en todos los años\n3. Países con promedio >= valor dado", minvalue = 1, maxvalue = 3)

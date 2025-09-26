@@ -8,7 +8,7 @@ class TreeVisualizer:
     
     def add_nodes(self, node, dot):
         if node is not None:
-            label = f"{node.iso3}\n{node.average:.3f}"
+            label = f"{node.iso3}\n{node.average}"
             dot.node(node.iso3, label)
 
         if node.left:
