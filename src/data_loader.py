@@ -12,7 +12,7 @@ class DataLoader:
 
         self.df = pd.read_csv(self.csv_path)
 
-        years = [f'F{year}' for year in range(1961, 2022)]
+        years = [f'F{year}' for year in range(1961, 2023)]
 
         self.df['average'] = self.df[years].mean(axis=1).round(4)
 
