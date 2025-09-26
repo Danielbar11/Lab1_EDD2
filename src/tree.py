@@ -88,7 +88,7 @@ class Tree:
             else:
                 parent_suc.right = child
             if child:
-            child.pad = parent_suc
+                child.pad = parent_suc
 
             self.update_nodes(parent_suc)
         return True
@@ -100,19 +100,20 @@ class Tree:
             return 1 + max(self.height(node.left), self.height(node.right))
 
     def update_nodes(self, node: Node):
-        if node is None:
-            return
-        
-        left_tree = self.height(node.left)
-        right_tree = self.height(node.right)
-        node.bFactor = right_tree - left_tree
+        while node:
+            left_tree = self.height(node.left)
+            right_tree = self.height(node.right)
+            node.bFactor = right_tree - left_tree
 
-        if node.bFactor < -1 or node.bFactor > 1:
-            self.balance(node)
+            if node.bFactor < -1 or node.bFactor > 1:
+                self.balance(node)
         
-        self.update_nodes(node.pad)
+            node = node.pad
 
     def balance(self, node: Node):
+        if node is None:
+            return
+
         if node.bFactor > 1:
             if node.right and node.right.bFactor < 0:
                 self.rotate_right(node.right)
@@ -123,9 +124,11 @@ class Tree:
             self.rotate_right(node)
 
     def rotate_left(self, node: Node) -> Node:
+        if node is None or node.right is None:
+            return node
         aux = node.right
         node.right = aux.left
-        if aux.left:
+        if aux.left and aux.left != node:
             aux.left.pad = node
 
         aux.left = node
@@ -140,17 +143,19 @@ class Tree:
                 parent.right = aux
         else:
             self.root = aux
-
+        
         node.bFactor = self.height(node.right) - self.height(node.left)
         aux.bFactor = self.height(aux.right) - self.height(aux.left)
-        self.update_nodes(aux)
-    return aux
-            
+        return aux
+
     def rotate_right(self, node: Node) -> Node:
+        if node is None or node.left is None:
+            return node
         aux = node.left
         node.left = aux.right
-        if aux.right:
+        if aux.right and aux.right != node:
             aux.right.pad = node
+
         aux.right = node
         parent = node.pad
         aux.pad = parent
@@ -163,10 +168,9 @@ class Tree:
                 parent.right = aux
         else:
             self.root = aux
-
+        
         node.bFactor = self.height(node.right) - self.height(node.left)
         aux.bFactor = self.height(aux.right) - self.height(aux.left)
-        self.update_nodes(aux)
         return aux
     
     def search_segun_metrica(self, metrica, valor, node = None, results = None):
@@ -182,21 +186,60 @@ class Tree:
         return None
     
     # Temperatura en un año dado > promedio de todos los paises ese año
-    @staticmethod
-    def criterio_a(node, year, df) -> bool:
-        year_ubi = f"F{year}"
-        year_prom = df[year_ubi].mean()
-        return node.data[year_ubi] > year_prom
+    def criterio_a(self, year, df):
+        result = []
+        if f"F{year}" not in df.columns:
+            return result
+        year_avg = df[f"F{year}"].mean()
+
+        def inorder(node):
+            if not node:
+                return
+            inorder(node.left)
+            row = df[df["ISO3"] == node.iso3]
+            if not row.empty and row.iloc[0][f"F{year}"] > year_avg:
+                result.append(node)
+            inorder(node.right)
+
+        inorder(self.root)
+        return result
+        
 
     # Temperatura en un año dado < promedio de todos los años
-    @staticmethod
-    def criterio_b(node, year, df) -> bool:
-        prom = df[[f"F{y}" for y in range(1961,2023)]].mean().mean()
-        year_ubi = f"F{year}"
-        return node.data[year_ubi] < prom
+    def criterio_b(self, year, df):
+        result = []
+        year_col = f"F{year}"
+        if year_col not in df.columns:
+            return result
+        all_years = [col for col in df.columns if col.startswith("F")]
+        global_avg = df[all_years].values.mean()
+
+        def inorder(node):
+            if not node:
+                return
+            inorder(node.left)
+            row = df[df["ISO3"] == node.iso3]
+            if not row.empty and row.iloc[0][year_col] < global_avg:
+                result.append(node)
+            inorder(node.right)
+
+        inorder(self.root)
+        return result
     
-    def criterio_c(self, node, value) -> bool:
-        return node.average >= value
+    # promedio >= valor dado
+    def criterio_c(self, value):
+        result = []
+        
+        def inorder(node):
+            if not node:
+                return
+            inorder(node.left)
+            if node.average >= value:
+                result.append(node)
+            inorder(node.right)
+
+        inorder(self.root)
+        return result
     
     def get_level(self, node:Node) -> int:
         level = 0
@@ -223,30 +266,38 @@ class Tree:
         else:
             return abuelo.left
         
-    def search_iso3(self, iso3: str, node=None) -> Node:
+    def search_iso3(self, iso3: str, node=None, visited=None) -> Node:
+        if visited is None:
+            visited = set()
         if node is None:
             node = self.root
-        if node is None:
+        if node is None or id(node) in visited:
             return None
+        visited.add(id(node))
+    
         if node.iso3 == iso3:
             return node
-        left = self.search_iso3(iso3, node.left)
+        left = self.search_iso3(iso3, node.left, visited)
         if left:
             return left
-        return self.search_iso3(iso3, node.right)
+        return self.search_iso3(iso3, node.right, visited)
 
-    def search_nombre(self, nombre: str, node=None) -> Node:
+    def search_nombre(self, nombre: str, node=None, visited=None) -> Node:
+        if visited is None:
+            visited = set()
         if node is None:
             node = self.root
-        if node is None:
+        if node is None or id(node) in visited:
             return None
+        visited.add(id(node))
+    
         if node.country == nombre:
             return node
-        left = self.search_nombre(nombre, node.left)
+        left = self.search_nombre(nombre, node.left, visited)
         if left:
             return left
-        return self.search_nombre(nombre, node.right)
-
+        return self.search_nombre(nombre, node.right, visited)
+    
     def search_promedio(self, promedio: float) -> Node: return self.search(self.root, promedio)
 
     def recorrido_por_niveles(self, node: Node):
@@ -256,8 +307,8 @@ class Tree:
         while q:
             p = q.pop(0)
             result.append(p.iso3)
-            if node.left:
+            if p.left:
                 q.append(p.left)
-            if node.right:
+            if p.right:
                 q.append(p.right)
         return result
