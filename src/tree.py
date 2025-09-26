@@ -9,7 +9,7 @@ class Tree:
         if node is None:
             return None
         
-        if abs(node.average - average) <= tol:
+        if node.average == average:
             return node
         elif average < node.average:
             return self.search(node.left, average)
@@ -82,7 +82,7 @@ class Tree:
             node.country = sucesor.country
 
             parent_suc = sucesor.pad
-            child = sucesor.right  # puede ser None
+            child = sucesor.right 
             if parent_suc.left == sucesor:
                 parent_suc.left = child
             else:

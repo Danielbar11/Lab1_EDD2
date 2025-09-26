@@ -36,6 +36,9 @@ class Interface(ctk.CTk):
         self.insert_button = ctk.CTkButton(self.sidebar, text="Insertar nodo", command=self.insert_node)
         self.insert_button.pack(pady=10)
         
+        self.delete_all_button = ctk.CTkButton(self.sidebar, text="Eliminar todo el árbol", command=self.delete_all_nodes)
+        self.delete_all_button.pack(pady=10, fill="x")
+
         self.level_button = ctk.CTkButton(self.sidebar, text = "Nivel", command = self.show_level)
         self.level_button.pack(pady = 5)
         self.balance_button = ctk.CTkButton(self.sidebar, text = "Factor de equilibrio", command = self.show_balance_factor)
@@ -62,7 +65,6 @@ class Interface(ctk.CTk):
         
         self.delete_button = ctk.CTkButton(search_frame, text="Eliminar nodo seleccionado", command=self.delete_node)
         self.delete_button.pack(pady=5, fill="x")
-        
 
         criteria_frame = ctk.CTkFrame(self.sidebar)
         criteria_frame.pack(fill="x", pady=10)
@@ -107,11 +109,13 @@ class Interface(ctk.CTk):
             height = int(img.height * self.zoom_factor)
             img_resized = img.resize((width, height), Image.Resampling.LANCZOS)
             self.tree_image = ImageTk.PhotoImage(img_resized)
-
             self.canvas.delete("all")
             self.canvas.create_image(0, 0, anchor="nw", image=self.tree_image)
-
             self.canvas.config(scrollregion=(0, 0, width, height))
+        else:
+            self.canvas.delete("all")
+            self.tree_image = None
+            self.canvas.config(scrollregion=(0, 0, 0, 0))    
 
     
     def show_level(self):
@@ -152,7 +156,7 @@ class Interface(ctk.CTk):
         select = self.node_combobox.get()
         if not select:
             return None
-
+        
         criterio = self.search_criteria.get()
         if criterio == "iso3":
             return self.tree.search_iso3(select)
@@ -164,6 +168,11 @@ class Interface(ctk.CTk):
                 return self.tree.search_promedio(promedio)
             except ValueError:
                 return None
+            
+        criteria_select = self.criteria_cb.get()
+        if criteria_select:
+            iso3 = criteria_select.split(" - ")[0]
+            return self.tree.search_iso3(iso3)
         return None
     
     def search_node(self):
@@ -195,7 +204,7 @@ class Interface(ctk.CTk):
             elif criterio == "nombre":
                 value = nodo.country
             else:
-                value = f"{nodo.average:.3f}"
+                value = f"{nodo.average}"
 
             self.node_combobox.configure(values=[value])
             self.node_combobox.set(value)
@@ -267,30 +276,41 @@ class Interface(ctk.CTk):
         else:
             mb.showwarning("Advertencia", "No se encontró el nodo seleccionado en criterios")
 
-    
+    def delete_all_nodes(self):
+        confirm = mb.askyesno("Confirmar", "¿Está seguro de que desea eliminar todo el árbol?")
+        if confirm:
+            self.tree = Tree()
+            self.tree_visualizer = TreeVisualizer(self.tree)
+            self.node_combobox.configure(values=[])
+            self.node_combobox.set("")
+            self.criteria_cb.configure(values=[])
+            self.criteria_cb.set("")
+            self.display_tree()
+            mb.showinfo("Eliminación", "Se eliminó todo el árbol")
+
     def search_by_criteria(self):
         options = ["Países con temperatura en año X > promedio global de ese año", "Países con temperatura en año X < promedio global en todos los años", "Países con promedio >= valor dado"]
-        choice = simpledialog.askinteger("Selección de criterio", "Seleccione criterio:\n1. Países con temperatura en año X > promedio global de ese año\n2.Países con temperatura en año X < promedio global en todos los años\n3. Países con promedio >= valor dado", minvalue = 1, maxvalue = 3)
+        choice = simpledialog.askinteger("Selección de criterio", "Seleccione criterio:\n1. Países con temperatura en año X > promedio global de ese año\n2.Países con temperatura en año X < promedio global en todos los años\n3. Países con promedio >= valor dado", minvalue = 1, maxvalue = 3, parent = self)
         if not choice:
             return
         if choice == 1:
-            year = simpledialog.askinteger("Año", "Ingrese el año", minvalue = 1961, maxvalue = 2022)
+            year = simpledialog.askinteger("Año", "Ingrese el año", minvalue = 1961, maxvalue = 2022, parent = self)
             if not year:
                 return
             nodes = self.tree.criterio_a(year, self.df)
         elif choice == 2:
-            year = simpledialog.askinteger("Año", "Ingrese el año", minvalue = 1961, maxvalue = 2022)
+            year = simpledialog.askinteger("Año", "Ingrese el año", minvalue = 1961, maxvalue = 2022, parent = self)
             if not year:
                 return
             nodes = self.tree.criterio_b(year, self.df)
         else:
-            avg = simpledialog.askfloat("Promedio", "Ingrese valor del promedio:")
+            avg = simpledialog.askfloat("Promedio", "Ingrese valor del promedio:", parent = self)
             if avg is None:
                 return
             nodes = self.tree.criterio_c(avg)
         
         if not nodes:
-            mb.showinfo("Resultado", "No se encontraron países con ese criterio")
+            mb.showinfo("Resultado", "No se encontraron países con ese criterio", parent = self)
             return
         
         self.criteria_cb.configure(values = [f"{n.iso3} - {n.country}" for n in nodes])
