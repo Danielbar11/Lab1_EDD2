@@ -62,7 +62,7 @@ class Interface(ctk.CTk):
         self.search_button.pack(pady=5, fill="x")
         self.node_combobox = ctk.CTkComboBox(search_frame, values=[], state="readonly")
         self.node_combobox.pack(pady=5, fill="x")
-        
+
         self.delete_button = ctk.CTkButton(search_frame, text="Eliminar nodo seleccionado", command=self.delete_node)
         self.delete_button.pack(pady=5, fill="x")
 
@@ -73,10 +73,13 @@ class Interface(ctk.CTk):
         self.criteria_cb = ctk.CTkComboBox(criteria_frame, values=[], state="readonly")
         self.criteria_cb.pack(pady=5, fill="x")
         self.delete_criteria_button = ctk.CTkButton(criteria_frame, text="Eliminar nodo de criterios", command=self.delete_node_from_criteria)
-        self.delete_criteria_button.pack(pady=5, fill="x")
+        self.delete_criteria_button.pack(pady=5)
         
         self.info_label = ctk.CTkLabel(self.sidebar, text="Selecciona un nodo")
         self.info_label.pack(pady=10, fill="x")
+
+        self.recorrido_button = ctk.CTkButton(self.sidebar, text="Recorridos", command=self.show_recorrido)
+        self.recorrido_button.pack(pady=10, fill="x")
 
         self.tree_image = None
         self.display_tree()
@@ -151,6 +154,14 @@ class Interface(ctk.CTk):
                 self.info_label.configure(text = f"Tío: {tio.iso3}")
             else:
                 self.info_label.configure(text = "Tío: None")
+
+    def show_recorrido(self):
+        if self.tree.root is None:
+            mb.showinfo("Recorridos", "El árbol está vacío")
+            return
+        
+        recorrido = self.tree.recorrido_por_niveles(self.tree.root)
+        mb.showinfo("Recorrido por niveles", " -> ".join(recorrido))
 
     def get_selected_node(self):
         select = self.node_combobox.get()
